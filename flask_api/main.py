@@ -9,7 +9,7 @@ from flask import Flask, request, jsonify, send_file, make_response
 import tensorflow
 import numpy as np
 import shutil
-from tensorflow.keras.applications.mobilenet import preprocess_input
+from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.models import load_model
 from datetime import datetime
 import glob
@@ -41,14 +41,12 @@ def predict(img_path, model):
 
 def get_cropped_imgs(raw_imgs_path):
     os.popen("python " + os.path.join("yolov9", "detect.py") + " --weights " + os.path.join(UPLOAD_MODEL_FOLDER, "best.pt") + " \
-  --img 640 --conf 0.4 --source " + os.path.join(UPLOAD_FOLDER, raw_imgs_path) + " --save-crop --hide-labels --name " + raw_imgs_path).read()
+  --img 640 --conf 0.6 --source " + os.path.join(UPLOAD_FOLDER, raw_imgs_path) + " --save-crop --name " + raw_imgs_path).read()
     
     cropped_files = glob.glob(os.path.join("yolov9", "runs", "detect", raw_imgs_path, "crops", "*", "*.*"), recursive=True)
-    print(cropped_files)
 
     img_to_crops = {}
     raw_files = glob.glob(os.path.join(UPLOAD_FOLDER, raw_imgs_path, "*.*"))
-    print(raw_files)
     for file in raw_files:
         img_to_crops[file.split(os.path.sep)[-1]] = []
         for crop in cropped_files:
@@ -75,7 +73,6 @@ def upload_images():
         image_paths.append(image_path)
 
     imgs_to_crops = get_cropped_imgs(dt_now)
-    print(imgs_to_crops)
     classified_images = classify_images(imgs_to_crops)
     zip_path = create_archive(classified_images, dt_now)
     response = make_response(send_file(zip_path, as_attachment = True, download_name = f'results_{dt_now}.zip'))
@@ -131,12 +128,14 @@ def classify_images(imgs_to_crops):
     classes = {'Кабарги': [], 'Косули': [], 'Олени': []}
     for img, image_paths in imgs_to_crops.items():
         for image_path in image_paths:
-            predicted_class = np.argmax(predict(image_path, MODEL))
+            prediction = predict(image_path, MODEL)
+            print(prediction)
+            predicted_class = np.argmax(prediction)
             if(predicted_class == 0): predicted_class = 'Кабарги'
             elif(predicted_class == 1): predicted_class = 'Косули'
             else: predicted_class = 'Олени'
             classes[predicted_class].append(img)
-    
+    print(classes)
     return classes
 
 if __name__ == '__main__':

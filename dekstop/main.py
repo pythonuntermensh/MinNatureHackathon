@@ -4,7 +4,7 @@ import os
 import tensorflow
 import numpy as np
 import shutil
-from tensorflow.keras.applications.mobilenet import preprocess_input
+from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.models import load_model
 import zipfile
 from zipfile import ZipFile
